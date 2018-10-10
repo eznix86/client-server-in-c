@@ -580,7 +580,7 @@ int gestion(int clientSocket, int choice){
 
 
 int main(int argc, char *argv[]){
-
+	int pid;
     struct sockaddr_in server_address,  client_address; 
     int available_socket, accepted_socket, port_no, client_address_length, buffer_handler;
     char buffer[1024] = {0};
@@ -612,24 +612,29 @@ int main(int argc, char *argv[]){
     listen(available_socket, 5);
     client_address_length = sizeof(client_address);
 
-    accepted_socket = accept(available_socket, (struct sockaddr *) &client_address, &client_address_length);
-    printf("\nNew Client connected !\n");
+	while(1){
+		accepted_socket = accept(available_socket, (struct sockaddr *) &client_address, &client_address_length);
+    	printf("\nNew Client connected !\n");
 
-    if (accepted_socket < 0){
-        error("\nError! Unable to accept socket");
-    }
-    
-    char selection[256];
+		if (accepted_socket < 0){
+			error("\nError! Unable to accept socket");
+		}
+		pid = fork();
+		if (pid < 0)
+			error("ERROR on fork");
+		if (pid == 0)  {
+			char selection[256];
 
-    buffer_handler = read(accepted_socket,  &selection, sizeof(selection));
-    
-    if(buffer_handler < 0 ) error("Error! Unable to read from socket");
-    gestion(accepted_socket, atoi(selection) );
-    
-   
-
-    close(available_socket);
-    close(accepted_socket);
+			buffer_handler = read(accepted_socket,  &selection, sizeof(selection));
+		
+			if(buffer_handler < 0 ) error("Error! Unable to read from socket");
+			
+			close(available_socket);
+			gestion(accepted_socket, atoi(selection) );
+			exit(0);
+		}else
+			close(accepted_socket);
+	}
     return 0;
 }
 
