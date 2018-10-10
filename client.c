@@ -83,13 +83,44 @@ void removeNewLine(char *text){
         text[len-1]='\0';
 }
 
+int displayPatient(int socket){
+   clearScreen();
+
+    int found, buffer_handler, i = 0;
+    char buffer[1024] = {0};
+    char n[80];
+
+    
+    printf("****************************[LISTE PATIENTS]************************\n");
+    buffer_handler = read(socket,  &n, sizeof(n));
+    found = atoi(n);
+    while( found && i < found){
+        buffer_handler = read(socket, buffer, sizeof(buffer));
+        if(buffer_handler < 0 ) error("Error! Unable to read from socket");
+
+        DOCUMENT tmp;
+        deserialize(buffer, &tmp);
+        printf("%d\t%10s\t%10s\t%10s\t%10s\n", i+1, tmp.name, tmp.surname, tmp.birth_year, tmp.city);
+
+        buffer_handler = write(socket, "OK", 2 );
+        if(buffer_handler < 0) {break; error("Error! Unable to write to socket");}
+
+        i ++;        
+    }
+
+    printf("\n%d patient(s) trouver\n", found);
+    printf("********************************************************************\n");
+
+    
+    return found;
+}
 
 void insertPatient(int socket){
 
     DOCUMENT patient;
     char buff[256], choix[50];
     clearScreen();
-    printf("*****************[AJOUTER PATIENT]********************\n");
+    printf("***************************[AJOUTER PATIENT]************************\n");
     printf("1. Nom: ");
 	fgets( patient.surname, sizeof(patient.surname), stdin);
 	printf("2. Prenom: ");
@@ -98,7 +129,7 @@ void insertPatient(int socket){
 	fgets(patient.birth_year, sizeof(patient.birth_year), stdin);
 	printf("4. Ville: ");
 	fgets(patient.city, sizeof(patient.city), stdin);
-    printf("******************************************************\n");
+    printf("********************************************************************\n");
     removeNewLineStruct(&patient);
     do{
         printf("\nVoulez-vous vraiment sauvegarder le patient: %s %s nee en %s, habitant de %s\n\n",patient.surname, patient.name, patient.birth_year, patient.city);
@@ -148,79 +179,208 @@ void removePatient(int socket){
         return;
     }else {
         char str[80];
-        sprintf(str, "%d", line);
+        sprintf(str, "%d", atoi(choice));
         write(socket, &str, sizeof(str));
-        printf("\nPatient a la ligne %d effacer\n", line);
+        printf("\nPatient a la ligne %d effacer\n", atoi(choice));
         sleep(2);
     }
 
 }
-void recherchePatient(){
+
+
+void modifyPatient(int socket){
+    char choice[50];
+    int line = 0;
+    do{
+        write(socket, "3", 1);
+        line =  displayPatient(socket);    
+        printf(line > 0 ? "Pour effacer un patient:\n": "");
+        printf(line > 0 ? "Choissez un numero de ligne [1 - %d]:\n" : "", line);
+        printf("Tappez le chiffre zero pour quitter\n");
+        printf("Votre choix: ");
+        fgets(choice, sizeof(choice), stdin);
+    }while((atoi(choice) < 0 || atoi(choice) > line) && write(socket, "0", 1) &&(printf("Mauvaise selection, Veuillez reessayez!\n")) && sleep(2));
+
+    if((strcmp(choice, "0\n") == 0 ) || line == 0){
+        write(socket, "0", 1);
+        return;
+    }else {
+        char str[80];
+        sprintf(str, "%d", atoi(choice));
+        write(socket, &str, sizeof(str));
+        DOCUMENT buffer;
+        printf("\n**********************[MODIFIER PATIENT]***************************");
+        printf("\n\n1. Nouveau Nom: ");
+        fgets( buffer.surname, sizeof(buffer.surname), stdin);
+        printf("2. Nouveau Prenom: ");
+        fgets(buffer.name, sizeof(buffer.name), stdin);
+        printf("3. Nouvel Annee de Naissance: ");
+        fgets(buffer.birth_year, sizeof(buffer.birth_year), stdin);
+        printf("4. Nouvel Ville: ");
+        fgets(buffer.city, sizeof(buffer.city), stdin);
+        printf("********************************************************************\n");
+        char bufferString[1024] = {0};
+        removeNewLineStruct(&buffer);
+        size_t bufLen = serialize(&buffer, bufferString);
+
+        write(socket, &bufferString, bufLen);
+
+        printf("\nPatient a la ligne %d modifier\n", atoi(choice));
+        sleep(2);
+    }
+
+}
+void recherchePatient(int socket){
 
     DOCUMENT patient;
-    char buff[256], choix[10];
+    char searchTerms[50], choix[10];
     int found = 0;
-
-    clearScreen();
-    printf("********************[RECHERCHE PATIENT]**********************\n");
-    printf("Veuillez inserer un mot clef: ");
-    fgets(buff, sizeof(buff), stdin);
-    removeNewLine(buff);
-    printf("\nMot clef inserer: %s\n", buff);
-    printf("\n*****************[RESULTAT DE LA RECHERCHE]******************\n");
-    printf("ID\tNOM\tPRENOM\tANNEE\tVILLE\n");
-    
-    printf("\n%d patient(s) trouver\n\n", found);
-	printf("*************************************************************\n");
-    
-
-    do{
-        printf("\nVoulez-vous,\n");
-        printf("1. Modifier un Patient\n");
-        printf("2. Effacer un Patient\n");
-        printf("3. Revenir a la l'ecran principal\n");
-        printf("Votre choix: ");
-        fgets(choix, 10, stdin);
-    }while(!(strcmp(choix, "1\n") == 0 || strcmp(choix, "2\n") == 0 || strcmp(choix, "3\n") == 0)  );
-
-    if((strcmp(choix, "1\n") == 0 )){
-        printf("Patient Modifier");
-      
-    }else if((strcmp(choix, "2\n") == 0 )){
-        printf("\nPatient Effacer\n");
-      
-    }
-}
-
-int displayPatient(int socket){
-   clearScreen();
-
-    int found, buffer_handler, i = 0;
+    int buffer_handler, i = 0;
     char buffer[1024] = {0};
     char n[80];
 
+    clearScreen();
+    printf("***********************[RECHERCHE PATIENT]***************************\n");
+    printf("Veuillez inserer un mot clef: ");
+    fgets(searchTerms, sizeof(searchTerms), stdin);
+    removeNewLine(searchTerms);
+    printf("\nMot clef inserer: %s\n", searchTerms);
+
+    buffer_handler = write(socket, &searchTerms, sizeof(searchTerms) );
+    if(buffer_handler < 0) error("Error! Unable to write to socket");
+    printf("Recherche de votre mot clef dans la base de donnee.... ");
     buffer_handler = read(socket,  &n, sizeof(n));
-    printf("*******************[LISTE PATIENTS]*********************\n");
     found = atoi(n);
+    printf("Trouver: %d\n", found);
+    if (found)  clearScreen();
+    printf("\n*****************[RESULTAT DE LA RECHERCHE]*************************\n");
+    printf("%s\t%10s\t%10s\t%10s\t%10s\n", "ID","NOM","PRENOM","ANNEE","VILLE");
+    
+
     while( found && i < found){
         buffer_handler = read(socket, buffer, sizeof(buffer));
         if(buffer_handler < 0 ) error("Error! Unable to read from socket");
 
         DOCUMENT tmp;
         deserialize(buffer, &tmp);
-        printf("%d\t%s\t%s\t%s\t%s\n", i+1, tmp.name, tmp.surname, tmp.birth_year, tmp.city);
+        printf("%d\t%10s\t%10s\t%10s\t%10s\n", i+1, tmp.name, tmp.surname, tmp.birth_year, tmp.city);
 
         buffer_handler = write(socket, "OK", 2 );
         if(buffer_handler < 0) {break; error("Error! Unable to write to socket");}
 
         i ++;        
     }
-
-    printf("\n%d patient(s) trouver\n", found);
-    printf("********************************************************\n");
+    printf("********************************************************************\n");
 
     
-    return found;
+
+    do{
+        if (! found ) break;
+        printf("\nVoulez-vous,\n");
+        printf("1. Modifier un Patient\n");
+        printf("2. Effacer un Patient\n");
+        printf("3. Revenir a l'ecran principal\n");
+        printf("Votre choix: ");
+        fgets(choix, 10, stdin);
+    }while(!(strcmp(choix, "1\n") == 0 || strcmp(choix, "2\n") == 0 || strcmp(choix, "3\n") == 0)  );
+
+    if((strcmp(choix, "1\n") == 0 )){
+         buffer_handler = write(socket, "1", 2 );
+        if(buffer_handler < 0)  error("Error! Unable to write to socket");
+        do{
+            printf(found > 0 ? "Pour Modifier un patient:\n": "");
+            printf(found > 0 ? "Choissez un numero de ligne [1 - %d]:\n" : "", found);
+            printf("Tappez le chiffre zero pour quitter\n");
+            printf("Votre choix: ");
+            fgets(choix, sizeof(choix), stdin);
+            removeNewLine(choix);
+        }while((atoi(choix) < 0 || atoi(choix) > found)  &&(printf("Mauvaise selection, Veuillez reessayez!\n")) && sleep(2));
+
+        if(atoi(choix) == 0){
+            write(socket, "0", 1);
+            return 0;
+        }else {
+            DOCUMENT tmp;
+            buffer_handler = write(socket, &choix, sizeof(choix) );
+            if(buffer_handler < 0)  error("Error! Unable to write to socket");
+            char tmpLine[500] = {0};
+            read(socket, tmpLine, sizeof(tmpLine));
+            deserialize(tmpLine, &tmp);
+
+            do{
+                printf("\n1. Modifier Nom seulement\n");
+                printf("2. Modifier Prenom seulement\n");
+                printf("3. Modifier Annee de Naissance seulement\n");
+                printf("4. Modifier Ville seulement\n");
+                printf("5. Modifier tous les informations\n");
+                printf("Votre choix: ");
+                fgets(choix, sizeof(choix), stdin);
+                removeNewLine(choix);
+            }while((atoi(choix) < 0 || atoi(choix) > 5)  &&(printf("Mauvaise selection, Veuillez reessayez!\n")) && sleep(2));
+
+            if(atoi(choix) == 1){
+                printf("Nom: ");
+	            fgets(tmp.surname, sizeof(tmp.surname), stdin);
+            }else if(atoi(choix) == 2){
+                printf("Prenom: ");
+	            fgets(tmp.name, sizeof(tmp.name), stdin);
+            }else if(atoi(choix) == 3){
+                printf("Annee de Naissance: ");
+	            fgets(tmp.birth_year, sizeof(tmp.birth_year), stdin);
+            }else if(atoi(choix) == 4){
+                printf("Ville: ");
+	            fgets(tmp.city, sizeof(tmp.city), stdin);
+            }else if(atoi(choix) == 5){
+                printf("1. Nom: ");
+                fgets( tmp.surname, sizeof(tmp.surname), stdin);
+                printf("2. Prenom: ");
+                fgets(tmp.name, sizeof(tmp.name), stdin);
+                printf("3. Annee de Naissance: ");
+                fgets(tmp.birth_year, sizeof(tmp.birth_year), stdin);
+                printf("4. Ville: ");
+                fgets(tmp.city, sizeof(tmp.city), stdin);
+                
+            }
+            removeNewLineStruct(&tmp);
+            bzero(tmpLine, sizeof(tmpLine));
+            size_t len = serialize(&tmp,tmpLine);
+            write(socket, &tmpLine, len);
+            printf("Patient Modifier !");
+            fflush(stdout);
+            sleep(2);
+        }
+      
+    }else if((strcmp(choix, "3\n") == 0 )){
+        buffer_handler = write(socket, "0", 2 );
+
+    }else if((strcmp(choix, "2\n") == 0 )){
+        buffer_handler = write(socket, "2", 2 );
+        if(buffer_handler < 0)  error("Error! Unable to write to socket");
+        do{
+            printf(found > 0 ? "Pour effacer un patient:\n": "");
+            printf(found > 0 ? "Choissez un numero de ligne [1 - %d]:\n" : "", found);
+            printf("Tappez le chiffre zero pour quitter\n");
+            printf("Votre choix: ");
+            fgets(choix, sizeof(choix), stdin);
+            removeNewLine(choix);
+        }while((atoi(choix) < 0 || atoi(choix) > found)  &&(printf("Mauvaise selection, Veuillez reessayez!\n")) && sleep(2));
+
+        if(atoi(choix) == 0){
+            write(socket, "0", 1);
+            return 0;
+        }else {
+            buffer_handler = write(socket, &choix, sizeof(choix) );
+            if(buffer_handler < 0)  error("Error! Unable to write to socket");
+        }
+
+       printf("Patient effacer !");
+  
+    }else if (!found){
+        printf("\nAppuyez sur ENTER pour quitter.\n");
+        getchar();      
+    }
+    fflush(stdout);
+    sleep(2);
 }
 
 
@@ -231,14 +391,14 @@ void menu(int socket){
     do{
         
         clearScreen();
-        printf("*****************[GESTION PATIENT]*****************\n");
+        printf("*************************[GESTION PATIENT]***************************\n");
         printf("1. Ajouter Patient\n");
         printf("2. Recherche Patient\n");
         printf("3. Modifier Patient\n");
         printf("4. Effacer Patient\n");
         printf("5. Lister tous les Patient\n");
         printf("6. Quitter\n");
-        printf("*****************************************************\n");    
+        printf("********************************************************************\n");    
         printf("Votre choix: ");
         fgets(choice, sizeof(choice), stdin);
     }while((atoi(choice) < 1 || atoi(choice) > 6) && (printf("Mauvaise selection, Veuillez reessayez!\n")) && sleep(2));
@@ -249,10 +409,11 @@ void menu(int socket){
             insertPatient(socket);
             break;
         case 2:
+            write(socket, "2", 1);
             recherchePatient(socket);
             break;
         case 3:
-
+            modifyPatient(socket);
             break;
         case 4:
             removePatient(socket);
@@ -282,7 +443,7 @@ int main(int argc, char *argv[]){
    
     
     if (argc < 3){
-        printf("Usage: %s HOSTNAME PORT\n\n", argv[0]);
+        printf("Usage: %10s HOSTNAME PORT\n\n", argv[0]);
         exit(0);
     }
 
@@ -322,16 +483,16 @@ int main(int argc, char *argv[]){
     //     DOCUMENT buffer;
     //     char received[256];
     //     printf("Veuillez inserer un nom ");
-    //     scanf("%s", buffer.name);
+    //     scanf("%10s", buffer.name);
 
     //     printf("Veuillez inserer une ville ");
-    //     scanf("%s", buffer.city);
+    //     scanf("%10s", buffer.city);
 
     //     printf("Veuillez inserer un surnom");
-    //     scanf("%s", buffer.surname);
+    //     scanf("%10s", buffer.surname);
 
     //     printf("Veuillez inserer une annee de naissance");
-    //     scanf("%s", buffer.birth_year);
+    //     scanf("%10s", buffer.birth_year);
 
     //     char bufferString[1024] = {0};
     //     size_t bufLen = serialize(&buffer, bufferString);
@@ -344,6 +505,6 @@ int main(int argc, char *argv[]){
 
     //     if(buffer_handler < 0 ) error ("Failed to read from socket");
 
-    //     printf("%s", received);
+    //     printf("%10s", received);
 
     // }
