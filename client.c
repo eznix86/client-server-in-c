@@ -478,33 +478,3 @@ int main(int argc, char *argv[]){
 
 
 
-
-    // while (1){
-    //     DOCUMENT buffer;
-    //     char received[256];
-    //     printf("Veuillez inserer un nom ");
-    //     scanf("%10s", buffer.name);
-
-    //     printf("Veuillez inserer une ville ");
-    //     scanf("%10s", buffer.city);
-
-    //     printf("Veuillez inserer un surnom");
-    //     scanf("%10s", buffer.surname);
-
-    //     printf("Veuillez inserer une annee de naissance");
-    //     scanf("%10s", buffer.birth_year);
-
-    //     char bufferString[1024] = {0};
-    //     size_t bufLen = serialize(&buffer, bufferString);
-
-    //     buffer_handler = write(available_socket, &bufferString, bufLen);
-
-    //     if(buffer_handler < 0) error ("Failed  to write to socket");
-    
-    //     buffer_handler = read(available_socket, received, 255);
-
-    //     if(buffer_handler < 0 ) error ("Failed to read from socket");
-
-    //     printf("%10s", received);
-
-    // }

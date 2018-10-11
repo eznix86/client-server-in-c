@@ -640,20 +640,3 @@ int main(int argc, char *argv[]){
 
 
 
-//  while (1){
-//         buffer_handler = read(accepted_socket, buffer, sizeof(buffer));
-    
-//         if(buffer_handler < 0 ) error("Error! Unable to read from socket");
-
-//         DOCUMENT tmp;
-//         deserialize(buffer, &tmp);
-//         printf("Message1: %s\n", tmp.name);
-//         printf("Message3: %s\n", tmp.surname);
-//         printf("Message2: %s\n", tmp.city);
-//         printf("Message4: %s\n", tmp.birth_year);
-
-
-//         buffer_handler = write(accepted_socket, "Well received", 14 );
-//         if(buffer_handler < 0) error("Error! Unable to write to socket");
-
-//     }
