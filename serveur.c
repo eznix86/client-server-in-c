@@ -64,164 +64,6 @@ void error(char *message){
     perror(message);
     exit(1);
 }
-
-int displayData(int socket)
-{
-	FILE *checkExist, *ptrToFile;
-
-	struct document patient;
-
-	checkExist = fopen(DATA_FILE, "r"); //check if file exist
-
-	if (checkExist)
-	{	//if exists
-		ptrToFile = fopen(DATA_FILE, "rb");
-
-		fseek(ptrToFile, sizeof(struct document), SEEK_END);		 //get to the end of the file
-		int lineNumber = ftell(ptrToFile) / sizeof(struct document); //give the cursor byte size offset divided by the document size.
-        printf("\n\nno of line %d\n\n", lineNumber -1 );
-         char str[80];
-
-        sprintf(str, "%d", lineNumber - 1);
-		if (lineNumber == 1)
-		{
-			printf("\n\nNo patient recorded\n\n");
-			write(socket, &str, sizeof(str));
-            return 0;
-		}else {
-           	write(socket, &str, sizeof(str));
-        }
-
-		rewind(ptrToFile);
-
-		int found = 0;
-		printf("\n***********LIST OF PATIENTS *************\n");
-		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
-		{
-
-            char received[2];
-            int buffer_handler;
-            char bufferString[1024] = {0};
-            size_t bufLen = serialize(&patient, bufferString);
-
-            buffer_handler = write(socket, &bufferString, bufLen);
-            if(buffer_handler < 0) error ("Failed  to write to socket");
-        
-            buffer_handler = read(socket, &received, sizeof(received));
-
-            if(buffer_handler < 0 ) error ("Failed to read from socket");
-			printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
-			found++;
-		}
-		printf("\nScan completed: %d patient(s) found\n", found);
-		fclose(ptrToFile);
-		return 0;
-	}
-	else
-	{
-		printf("\nError reading document; file %s not found\n\n", DATA_FILE);
-	}
-}
-
-
-
-//search into file sequentially
-int searchFile(int socket)
-{
-	
-    char searchTerms[50];
-	int buffer_handler;
-	FILE *checkExist, *ptrToFile;
-
-	struct document patient;
-
-	checkExist = fopen(DATA_FILE, "r");
-
-	buffer_handler = read(socket, searchTerms, sizeof(searchTerms));
-	if(buffer_handler < 0 ) error("Error! Unable to read from socket");
-
-	printf("\nSearch Term is:%s\n\n", searchTerms);
-	if (checkExist) //check if file exists error handling
-	{
-		//if exists
-		ptrToFile = fopen(DATA_FILE, "rb");
-
-		fseek(ptrToFile, sizeof(struct document), SEEK_END);		 //get to the end of the file
-		int lineNumber = ftell(ptrToFile) / sizeof(struct document); //give the cursor byte size offset divided by the document size.
-
-		if (lineNumber == 1)
-		{
-			printf("\n\nNo patient recorded\n\n");
-		}
-
-		//get to the first line
-		rewind(ptrToFile);
-		int found = 0;
-		printf("\n***********SEARCH RESULTS *************\n");
-		//start searching
-		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
-		{
-			//if found
-			if (strcasestr((patient.name), searchTerms)  != 0 || strcasestr((patient.surname), searchTerms) != 0 || strcasestr((patient.city), searchTerms)  != 0 || strcasestr((patient.birth_year), searchTerms)  != 0 )
-			{
-				printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
-				found++;
-			}
-		}
-		char str[80];
-		
-        sprintf(str, "%d", found);
-		write(socket, &str, sizeof(str));
-		rewind(ptrToFile);
-		found = 0;
-		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
-		{
-			//if found
-			if (strcasestr((patient.name), searchTerms)  != 0 || strcasestr((patient.surname), searchTerms) != 0 || strcasestr((patient.city), searchTerms)  != 0 || strcasestr((patient.birth_year), searchTerms)  != 0 )
-			{
-				char received[2];
-				int buffer_handler;
-				char bufferString[1024] = {0};
-				size_t bufLen = serialize(&patient, bufferString);
-
-				buffer_handler = write(socket, &bufferString, bufLen);
-				if(buffer_handler < 0) error ("Failed  to write to socket");
-			
-				buffer_handler = read(socket, &received, sizeof(received));
-
-				if(buffer_handler < 0 ) error ("Failed to read from socket");
-				printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
-				found++;
-			}
-		}
-		printf("\nScan completed: %d patient(s) found\n\n", found);
-		if (found){
-			char deleteOrModify[50];
-
-			buffer_handler = read(socket, deleteOrModify, sizeof(deleteOrModify));
-			if(buffer_handler < 0 ) error("Error! Unable to read from socket");
-			printf("deleteOr Modify %s\n", deleteOrModify);
-			if (atoi(deleteOrModify) == 0) return ;
-			char occurenceNo[50];
-			
-			buffer_handler = read(socket, occurenceNo, sizeof(occurenceNo));
-			if(buffer_handler < 0 ) error("Error! Unable to read from socket");
-			printf("occurenceNo %s\n", occurenceNo);
-
-			if (atoi(deleteOrModify) == 2 && atoi(occurenceNo) > 0){
-				removePatientByOccurence(socket, atoi(occurenceNo), searchTerms);
-			
-			}else if(atoi(deleteOrModify) == 1 && atoi(occurenceNo) > 0){
-				modifyPatientByOccurence(socket, atoi(occurenceNo), searchTerms);
-			}
-		}
-		return 0;
-	}
-	else
-	{
-		printf("\nError reading document; file %s not found\n\n", DATA_FILE);
-	}
-}
 int removePatientByOccurence(int socket, int occurenceNo, char searchTerms[50])
 {
     int position;
@@ -359,6 +201,164 @@ int modifyPatientByOccurence(int socket, int occurenceNo, char searchTerms[50])
 	}
 	return 0;
 }
+int displayData(int socket)
+{
+	FILE *checkExist, *ptrToFile;
+
+	struct document patient;
+
+	checkExist = fopen(DATA_FILE, "r"); //check if file exist
+
+	if (checkExist)
+	{	//if exists
+		ptrToFile = fopen(DATA_FILE, "rb");
+
+		fseek(ptrToFile, sizeof(struct document), SEEK_END);		 //get to the end of the file
+		int lineNumber = ftell(ptrToFile) / sizeof(struct document); //give the cursor byte size offset divided by the document size.
+        printf("\n\nno of line %d\n\n", lineNumber -1 );
+         char str[80];
+
+        sprintf(str, "%d", lineNumber - 1);
+		if (lineNumber == 1)
+		{
+			printf("\n\nNo patient recorded\n\n");
+			write(socket, &str, sizeof(str));
+            return 0;
+		}else {
+           	write(socket, &str, sizeof(str));
+        }
+
+		rewind(ptrToFile);
+
+		int found = 0;
+		printf("\n***********LIST OF PATIENTS *************\n");
+		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
+		{
+
+            char received[2];
+            int buffer_handler;
+            char bufferString[1024] = {0};
+            size_t bufLen = serialize(&patient, bufferString);
+
+            buffer_handler = write(socket, &bufferString, bufLen);
+            if(buffer_handler < 0) error ("Failed  to write to socket");
+        
+            buffer_handler = read(socket, &received, sizeof(received));
+
+            if(buffer_handler < 0 ) error ("Failed to read from socket");
+			printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
+			found++;
+		}
+		printf("\nScan completed: %d patient(s) found\n", found);
+		fclose(ptrToFile);
+		return 0;
+	}
+	else
+	{
+		printf("\nError reading document; file %s not found\n\n", DATA_FILE);
+	}
+}
+
+
+
+//search into file sequentially
+int searchFile(int socket)
+{
+	
+    char searchTerms[50];
+	int buffer_handler;
+	FILE *checkExist, *ptrToFile;
+
+	struct document patient;
+
+	checkExist = fopen(DATA_FILE, "r");
+
+	buffer_handler = read(socket, searchTerms, sizeof(searchTerms));
+	if(buffer_handler < 0 ) error("Error! Unable to read from socket");
+
+	printf("\nSearch Term is:%s\n\n", searchTerms);
+	if (checkExist) //check if file exists error handling
+	{
+		//if exists
+		ptrToFile = fopen(DATA_FILE, "rb");
+
+		fseek(ptrToFile, sizeof(struct document), SEEK_END);		 //get to the end of the file
+		int lineNumber = ftell(ptrToFile) / sizeof(struct document); //give the cursor byte size offset divided by the document size.
+
+		if (lineNumber == 1)
+		{
+			printf("\n\nNo patient recorded\n\n");
+		}
+
+		//get to the first line
+		rewind(ptrToFile);
+		int found = 0;
+		printf("\n***********SEARCH RESULTS *************\n");
+		//start searching
+		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
+		{
+			//if found
+			if (strcasestr((patient.name), searchTerms)  != 0 || strcasestr((patient.surname), searchTerms) != 0 || strcasestr((patient.city), searchTerms)  != 0 || strcasestr((patient.birth_year), searchTerms)  != 0 )
+			{
+				printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
+				found++;
+			}
+		}
+		char str[80];
+		
+        sprintf(str, "%d", found);
+		write(socket, &str, sizeof(str));
+		rewind(ptrToFile);
+		found = 0;
+		while (fread(&patient, sizeof(struct document), 1, ptrToFile))
+		{
+			//if found
+			if (strcasestr((patient.name), searchTerms)  != 0 || strcasestr((patient.surname), searchTerms) != 0 || strcasestr((patient.city), searchTerms)  != 0 || strcasestr((patient.birth_year), searchTerms)  != 0 )
+			{
+				char received[2];
+				int buffer_handler;
+				char bufferString[1024] = {0};
+				size_t bufLen = serialize(&patient, bufferString);
+
+				buffer_handler = write(socket, &bufferString, bufLen);
+				if(buffer_handler < 0) error ("Failed  to write to socket");
+			
+				buffer_handler = read(socket, &received, sizeof(received));
+
+				if(buffer_handler < 0 ) error ("Failed to read from socket");
+				printf("%d\t%s\t%s\t%s\t%s\n", found+ 1,patient.name, patient.surname, patient.birth_year, patient.city);
+				found++;
+			}
+		}
+		printf("\nScan completed: %d patient(s) found\n\n", found);
+		if (found){
+			char deleteOrModify[50];
+
+			buffer_handler = read(socket, deleteOrModify, sizeof(deleteOrModify));
+			if(buffer_handler < 0 ) error("Error! Unable to read from socket");
+			printf("deleteOr Modify %s\n", deleteOrModify);
+			if (atoi(deleteOrModify) == 0) return 0;
+			char occurenceNo[50];
+			
+			buffer_handler = read(socket, occurenceNo, sizeof(occurenceNo));
+			if(buffer_handler < 0 ) error("Error! Unable to read from socket");
+			printf("occurenceNo %s\n", occurenceNo);
+
+			if (atoi(deleteOrModify) == 2 && atoi(occurenceNo) > 0){
+				removePatientByOccurence(socket, atoi(occurenceNo), searchTerms);
+			
+			}else if(atoi(deleteOrModify) == 1 && atoi(occurenceNo) > 0){
+				modifyPatientByOccurence(socket, atoi(occurenceNo), searchTerms);
+			}
+		}
+		return 0;
+	}
+	else
+	{
+		printf("\nError reading document; file %s not found\n\n", DATA_FILE);
+	}
+}
+
 int removePatient(int socket)
 {
     int position;
@@ -433,7 +433,7 @@ int modifyPatient(int socket)
 	printf("here....");
     read(socket,  &n, sizeof(n));
     position = atoi(n);
-	if (!position) return;
+	if (!position) return 0 ;
     printf("%d ---------", position);
 	read(socket, buffer, sizeof(buffer));
     if(position == 0) return 0;
@@ -494,7 +494,7 @@ int modifyPatient(int socket)
 		printf("\nError reading document; file %s not found\n\n", DATA_FILE);
 	}
 	return 0;
-	printtf("Quitting modify patient");
+	printf("Quitting modify patient");
 }
 
 
@@ -519,7 +519,7 @@ int insertPatient(int accepted_socket)
 	FILE *ptrToFile;
     int buffer_handler;
     char buffer[1024] = {0};
-	ptrToFile = fopen(DATA_FILE, "r");
+	ptrToFile = fopen(DATA_FILE, "a+");
 	if (ptrToFile)
 	{
 		// fseek(ptrToFile, sizeof(struct document), SEEK_END);		 //get to the end of the file
@@ -580,6 +580,7 @@ int gestion(int clientSocket, int choice){
 
 
 int main(int argc, char *argv[]){
+
 	int pid;
     struct sockaddr_in server_address,  client_address; 
     int available_socket, accepted_socket, port_no, client_address_length, buffer_handler;
@@ -602,6 +603,7 @@ int main(int argc, char *argv[]){
     server_address.sin_port = htons(port_no);
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
+
     if(bind(available_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
         printf("\nError! Failed to use port: %d\n\n", port_no);
         getAvailablePort(&available_socket, &port_no);

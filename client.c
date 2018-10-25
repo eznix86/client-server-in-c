@@ -92,6 +92,7 @@ int displayPatient(int socket){
 
     
     printf("****************************[LISTE PATIENTS]************************\n");
+    printf("%s\t%10s\t%10s\t%10s\t%10s\n", "ID","PRENOM","NOM","ANNEE","VILLE");
     buffer_handler = read(socket,  &n, sizeof(n));
     found = atoi(n);
     while( found && i < found){
@@ -254,7 +255,7 @@ void recherchePatient(int socket){
     printf("Trouver: %d\n", found);
     if (found)  clearScreen();
     printf("\n*****************[RESULTAT DE LA RECHERCHE]*************************\n");
-    printf("%s\t%10s\t%10s\t%10s\t%10s\n", "ID","NOM","PRENOM","ANNEE","VILLE");
+    printf("%s\t%10s\t%10s\t%10s\t%10s\n", "ID","PRENOM","NOM","ANNEE","VILLE");
     
 
     while( found && i < found){
@@ -298,7 +299,7 @@ void recherchePatient(int socket){
 
         if(atoi(choix) == 0){
             write(socket, "0", 1);
-            return 0;
+            return ;
         }else {
             DOCUMENT tmp;
             buffer_handler = write(socket, &choix, sizeof(choix) );
@@ -320,10 +321,10 @@ void recherchePatient(int socket){
 
             if(atoi(choix) == 1){
                 printf("Nom: ");
-	            fgets(tmp.surname, sizeof(tmp.surname), stdin);
+	            fgets(tmp.surname, sizeof(tmp.name), stdin);
             }else if(atoi(choix) == 2){
                 printf("Prenom: ");
-	            fgets(tmp.name, sizeof(tmp.name), stdin);
+	            fgets(tmp.name, sizeof(tmp.surname), stdin);
             }else if(atoi(choix) == 3){
                 printf("Annee de Naissance: ");
 	            fgets(tmp.birth_year, sizeof(tmp.birth_year), stdin);
@@ -367,7 +368,7 @@ void recherchePatient(int socket){
 
         if(atoi(choix) == 0){
             write(socket, "0", 1);
-            return 0;
+            return ;
         }else {
             buffer_handler = write(socket, &choix, sizeof(choix) );
             if(buffer_handler < 0)  error("Error! Unable to write to socket");
