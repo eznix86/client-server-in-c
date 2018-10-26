@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "document.h"
+#include "login.h"
 void menu();
 
 size_t serialize(const DOCUMENT* patient, char* buf)
@@ -76,12 +77,6 @@ void removeNewLineStruct( DOCUMENT *patient){
 
 }
 
-void removeNewLine(char *text){
-    int len = 0;
-    len=strlen(text);
-    if(text[len-1]=='\n')
-        text[len-1]='\0';
-}
 
 int displayPatient(int socket){
    clearScreen();
@@ -471,7 +466,7 @@ int main(int argc, char *argv[]){
     
     if(connect(available_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0)
         error("Fail to connect to server");
-    
+    login(available_socket);
     menu(available_socket);
     return 0;
 

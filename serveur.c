@@ -73,7 +73,7 @@ int removePatientByOccurence(int socket, int occurenceNo, char searchTerms[50])
 
 	struct document patient;
 	
-	checkExist = fopen(DATA_FILE, "r");
+	checkExist = fopen(DATA_FILE, "a+");
 
 	if (checkExist)
 	{
@@ -137,7 +137,7 @@ int modifyPatientByOccurence(int socket, int occurenceNo, char searchTerms[50])
 
 	struct document patient;
 	
-	checkExist = fopen(DATA_FILE, "r");
+	checkExist = fopen(DATA_FILE, "a+");
 
 	if (checkExist)
 	{
@@ -207,7 +207,7 @@ int displayData(int socket)
 
 	struct document patient;
 
-	checkExist = fopen(DATA_FILE, "r"); //check if file exist
+	checkExist = fopen(DATA_FILE, "a+"); //check if file exist
 
 	if (checkExist)
 	{	//if exists
@@ -271,7 +271,7 @@ int searchFile(int socket)
 
 	struct document patient;
 
-	checkExist = fopen(DATA_FILE, "r");
+	checkExist = fopen(DATA_FILE, "a+");
 
 	buffer_handler = read(socket, searchTerms, sizeof(searchTerms));
 	if(buffer_handler < 0 ) error("Error! Unable to read from socket");
@@ -373,7 +373,7 @@ int removePatient(int socket)
 
 	struct document patient;
 	
-	checkExist = fopen(DATA_FILE, "r");
+	checkExist = fopen(DATA_FILE, "a+");
 
 	if (checkExist)
 	{
@@ -444,7 +444,7 @@ int modifyPatient(int socket)
     
 	struct document patient;
 	
-	checkExist = fopen(DATA_FILE, "r");
+	checkExist = fopen(DATA_FILE, "a+");
 
 	if (checkExist)
 	{
