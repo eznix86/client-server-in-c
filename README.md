@@ -14,3 +14,6 @@ make compile PORT=25800
 ./client localhost 25800
 
 ```
+GUI in c
+
+link[http://zetcode.com/gui/gtk2/introduction/]
