@@ -466,7 +466,7 @@ int main(int argc, char *argv[]){
     
     if(connect(available_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0)
         error("Fail to connect to server");
-    login(available_socket);
+    login();
     menu(available_socket);
     return 0;
 
